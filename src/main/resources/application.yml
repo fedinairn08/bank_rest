@@ -36,3 +36,7 @@ springdoc:
   swagger-ui:
     path: /swagger-ui
     persist-authorization: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}

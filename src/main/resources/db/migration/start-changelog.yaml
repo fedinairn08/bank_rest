@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 1758620106823-1
+      id: 1
       author: fedina_irn08
       changes:
         - createSequence:
@@ -218,5 +218,3 @@ databaseChangeLog:
             referencedTableName: users
             referencedColumnNames: id
             constraintName: fk_userol_on_user
-
-

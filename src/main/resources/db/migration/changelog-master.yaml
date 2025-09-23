@@ -2,5 +2,6 @@ databaseChangeLog:
   - include:
       file: start-changelog.yaml
       relativeToChangelogFile: true
-
-
+  - include:
+      file: insert-roles.yaml
+      relativeToChangelogFile: true

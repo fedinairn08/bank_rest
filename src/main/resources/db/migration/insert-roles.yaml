@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2
+      author: bank_rest
+      changes:
+        - insert:
+            tableName: roles
+            columns:
+              - column: {name: id, value: "1"}
+              - column: {name: name, value: "USER"}
+              - column: {name: created_at, valueComputed: "NOW()"}
+              - column: {name: updated_at, valueComputed: "NOW()"}
+
+        - insert:
+            tableName: roles
+            columns:
+              - column: {name: id, value: "2"}
+              - column: {name: name, value: "ADMIN"}
+              - column: {name: created_at, valueComputed: "NOW()"}
+              - column: {name: updated_at, valueComputed: "NOW()"}
