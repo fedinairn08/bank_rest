@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Setter
 @Getter
@@ -14,11 +15,13 @@ import java.math.BigDecimal;
 public class Card extends AbstractEntity {
 
     @Column(name = "number", nullable = false, unique = true, length = 512)
-    private String number;
+    private String number; // Зашифрованный номер
 
-    // Срок действия, формат YYYY-MM (YearMonth). Можно хранить как строку YYYY-MM
-    @Column(name = "expiry", nullable = false, length = 7)
-    private String expiry;
+    @Column(name = "card_holder", nullable = false)
+    private String cardHolder;
+
+    @Column(name = "expiry", nullable = false)
+    private LocalDate expiry;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)

@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: change-cards
+      author: fedina_irn08
+      changes:
+        - addColumn:
+            tableName: cards
+            columns:
+              - column:
+                  name: card_holder
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+        - modifyDataType:
+            tableName: cards
+            columnName: expiry
+            newDataType: DATE

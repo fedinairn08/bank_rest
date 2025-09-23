@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
-      id: 2
-      author: bank_rest
+      id: insert-roles
+      author: fedina_irn08
       changes:
         - insert:
             tableName: roles

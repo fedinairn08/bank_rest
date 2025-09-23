@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 1
+      id: start
       author: fedina_irn08
       changes:
         - createSequence:
@@ -96,10 +96,6 @@ databaseChangeLog:
             referencedTableName: users
             referencedColumnNames: id
             constraintName: FK_CARDS_ON_OWNER
-  - changeSet:
-      id: 1758620176396-1
-      author: fedina_irn08
-      changes:
         - createSequence:
             sequenceName: default_seq
             startValue: 1
