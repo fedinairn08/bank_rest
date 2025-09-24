@@ -1,0 +1,134 @@
+package com.example.bankcards.service;
+
+import com.example.bankcards.dto.request.CreateCardRequest;
+import com.example.bankcards.dto.request.UpdateCardRequest;
+import com.example.bankcards.entity.Card;
+import com.example.bankcards.entity.User;
+import com.example.bankcards.enums.CardStatus;
+import com.example.bankcards.repository.CardRepository;
+import com.example.bankcards.util.EncryptionUtils;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class CardService {
+
+    private final CardRepository cardRepository;
+
+    private final EncryptionUtils encryptionUtils;
+
+    private final UserService userService;
+
+    public Card createCard(CreateCardRequest request) {
+        User user = userService.findById(request.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
+
+        String encryptedCardNumber = encryptionUtils.encrypt(request.getCardNumber());
+        String lastFour = request.getCardNumber().substring(request.getCardNumber().length() - 4);
+
+        if (cardRepository.existsByNumber(encryptedCardNumber)) {
+            throw new RuntimeException("Card with this number already exists");
+        }
+
+        Card card = new Card();
+        card.setNumber(encryptedCardNumber);
+        card.setMaskedNumber("**** **** **** " + lastFour);
+        card.setCardHolder(request.getCardHolder());
+        card.setExpiry(request.getExpirationDate());
+        card.setStatus(CardStatus.ACTIVE);
+        card.setOwner(user);
+
+        return cardRepository.save(card);
+    }
+
+    public Card getCardById(Long cardId, Long userId) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new RuntimeException("Card not found with id: " + cardId));
+
+        if (!card.getOwner().getId().equals(userId) && userService.isAdmin(userId)) {
+            throw new RuntimeException("Access denied");
+        }
+
+        return card;
+    }
+
+    public Page<Card> getUserCards(Long userId, Pageable pageable) {
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return cardRepository.findByOwner(user, pageable);
+    }
+
+    public Page<Card> getAllCards(Pageable pageable, Long adminUserId) {
+        if (userService.isAdmin(adminUserId)) {
+            throw new RuntimeException("Access denied. Admin role required.");
+        }
+
+        return cardRepository.findAll(pageable);
+    }
+
+    public Card updateCard(Long cardId, UpdateCardRequest request, Long userId) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new RuntimeException("Card not found with id: " + cardId));
+
+        if (!card.getOwner().getId().equals(userId) && userService.isAdmin(userId)) {
+            throw new RuntimeException("Access denied");
+        }
+
+        if (request.getCardHolder() != null) {
+            card.setCardHolder(request.getCardHolder());
+        }
+
+        if (request.getExpirationDate() != null) {
+            card.setExpiry(request.getExpirationDate());
+        }
+
+        if (request.getStatus() != null) {
+            card.setStatus(request.getStatus());
+        }
+
+        return cardRepository.save(card);
+    }
+
+    public Card blockCard(Long cardId, Long userId) {
+        return updateCardStatus(cardId, CardStatus.BLOCKED, userId);
+    }
+
+    public Card activateCard(Long cardId, Long userId) {
+        return updateCardStatus(cardId, CardStatus.ACTIVE, userId);
+    }
+
+    public void deleteCard(Long cardId, Long userId) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new RuntimeException("Card not found with id: " + cardId));
+
+        if (!card.getOwner().getId().equals(userId) && userService.isAdmin(userId)) {
+            throw new RuntimeException("Access denied");
+        }
+
+        if (card.getBalance().compareTo(BigDecimal.ZERO) != 0) {
+            throw new RuntimeException("Cannot delete card with non-zero balance");
+        }
+
+        cardRepository.delete(card);
+    }
+
+    private Card updateCardStatus(Long cardId, CardStatus status, Long userId) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new RuntimeException("Card not found with id: " + cardId));
+
+        if (!card.getOwner().getId().equals(userId) && userService.isAdmin(userId)) {
+            throw new RuntimeException("Access denied");
+        }
+
+        card.setStatus(status);
+        return cardRepository.save(card);
+    }
+}

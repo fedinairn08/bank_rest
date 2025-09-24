@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -24,6 +25,10 @@ public class UserService {
 
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
+    }
+
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
     }
 
     public User createUser(String username, String password, RoleName roleName) {
@@ -42,7 +47,11 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public boolean validatePassword(String rawPassword, String encodedPassword) {
-        return passwordEncoder.matches(rawPassword, encodedPassword);
+    public boolean isAdmin(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        return user.getRoles().stream()
+                .noneMatch(role -> Objects.equals(role.getName(), "ADMIN"));
     }
 }

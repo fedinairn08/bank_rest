@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-masked_number
+      author: fedina_irn08
+      changes:
+        - addColumn:
+            tableName: cards
+            columns:
+              - column:
+                  name: masked_number
+                  type: VARCHAR(512)
+                  constraints:
+                    nullable: false

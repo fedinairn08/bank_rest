@@ -40,3 +40,6 @@ springdoc:
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION}
+
+encryption:
+  secret-key: ${SECRET_KEY}

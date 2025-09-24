@@ -17,6 +17,9 @@ public class Card extends AbstractEntity {
     @Column(name = "number", nullable = false, unique = true, length = 512)
     private String number; // Зашифрованный номер
 
+    @Column(name = "masked_number", nullable = false, length = 512)
+    private String maskedNumber;
+
     @Column(name = "card_holder", nullable = false)
     private String cardHolder;
 
