@@ -6,6 +6,7 @@ import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.enums.CardStatus;
 import com.example.bankcards.repository.CardRepository;
+import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.util.EncryptionUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 @Transactional
@@ -25,6 +27,8 @@ public class CardService {
     private final EncryptionUtils encryptionUtils;
 
     private final UserService userService;
+
+    private final UserRepository userRepository;
 
     public Card createCard(CreateCardRequest request) {
         User user = userService.findById(request.getUserId())
@@ -130,5 +134,51 @@ public class CardService {
 
         card.setStatus(status);
         return cardRepository.save(card);
+    }
+
+    public Card requestCardBlock(Long cardId, Long userId) {
+        Card card = getCardById(cardId, userId);
+
+        if (!card.getOwner().getId().equals(userId)) {
+            throw new RuntimeException("Only card owner can request block");
+        }
+
+        card.setStatus(CardStatus.BLOCKED);
+
+        return cardRepository.save(card);
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal getCardBalance(Long cardId, Long userId) {
+        Card card = getCardById(cardId, userId);
+        return card.getBalance();
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal getUserTotalBalance(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Card> userCards = cardRepository.findByOwner(user);
+
+        return userCards.stream()
+                .map(Card::getBalance)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Card> getUserActiveCards(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return cardRepository.findByOwnerAndStatus(user, CardStatus.ACTIVE);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Card> getUserBlockedCards(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return cardRepository.findByOwnerAndStatus(user, CardStatus.BLOCKED);
     }
 }

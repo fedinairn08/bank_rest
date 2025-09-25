@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Setter
 @Getter
@@ -25,7 +25,7 @@ public class Transfer extends AbstractEntity {
     private BigDecimal amount;
 
     @Column(name = "transfer_date", nullable = false)
-    private OffsetDateTime transferDate = OffsetDateTime.now();
+    private LocalDateTime transferDate = LocalDateTime.now();
 }
 
 

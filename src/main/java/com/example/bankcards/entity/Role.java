@@ -1,8 +1,7 @@
 package com.example.bankcards.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import com.example.bankcards.enums.RoleName;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,8 +11,9 @@ import lombok.Setter;
 @Table(name = "roles")
 public class Role extends AbstractEntity {
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "name", nullable = false, unique = true, length = 50)
-    private String name;
+    private RoleName name;
 }
 
 

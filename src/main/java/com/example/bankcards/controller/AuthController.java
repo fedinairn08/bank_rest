@@ -2,7 +2,6 @@ package com.example.bankcards.controller;
 
 import com.example.bankcards.dto.request.AuthRequest;
 import com.example.bankcards.dto.response.AuthResponse;
-import com.example.bankcards.entity.Role;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.enums.RoleName;
 import com.example.bankcards.security.JwtTokenProvider;
@@ -45,7 +44,7 @@ public class AuthController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         String roles = user.getRoles().stream()
-                .map(Role::getName)
+                .map(role -> role.getName().name())
                 .reduce((a, b) -> a + "," + b)
                 .orElse("");
 
