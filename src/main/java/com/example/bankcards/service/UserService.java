@@ -4,6 +4,9 @@ import com.example.bankcards.dto.request.UpdateUserRequest;
 import com.example.bankcards.entity.Role;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.enums.RoleName;
+import com.example.bankcards.exception.BusinessLogicException;
+import com.example.bankcards.exception.ResourceNotFoundException;
+import com.example.bankcards.exception.ValidationException;
 import com.example.bankcards.repository.RoleRepository;
 import com.example.bankcards.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -39,12 +42,12 @@ public class UserService {
     @Transactional(readOnly = true)
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     public User createUser(String username, String password, RoleName roleName) {
         if (userRepository.existsByUsername(username)) {
-            throw new RuntimeException("Username already exists");
+            throw new ValidationException("Username already exists");
         }
 
         User user = new User();
@@ -52,7 +55,7 @@ public class UserService {
         user.setPasswordHash(passwordEncoder.encode(password));
 
         Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleName));
         user.setRoles(Collections.singleton(role));
 
         return userRepository.save(user);
@@ -63,7 +66,7 @@ public class UserService {
 
         if (request.getUsername() != null && !request.getUsername().equals(user.getUsername())) {
             if (userRepository.existsByUsername(request.getUsername())) {
-                throw new RuntimeException("Username already exists: " + request.getUsername());
+                throw new ValidationException("Username already exists: " + request.getUsername());
             }
             user.setUsername(request.getUsername());
         }
@@ -79,7 +82,7 @@ public class UserService {
         User user = getUserById(userId);
 
         if (userRepository.hasUserCardsWithBalance(userId)) {
-            throw new RuntimeException("Cannot delete user with cards having non-zero balance");
+            throw new BusinessLogicException("Cannot delete user with cards having non-zero balance");
         }
 
         userRepository.delete(user);
@@ -93,16 +96,16 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<User> getUsersByRole(RoleName roleName) {
         Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleName));
 
         return userRepository.findByRolesContaining(role);
     }
 
     public boolean isAdmin(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         return user.getRoles().stream()
-                .noneMatch(role -> Objects.equals(role.getName(), RoleName.ADMIN));
+                .anyMatch(role -> Objects.equals(role.getName(), RoleName.ADMIN));
     }
 }

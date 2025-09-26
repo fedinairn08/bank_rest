@@ -5,6 +5,9 @@ import com.example.bankcards.dto.request.UpdateCardRequest;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.enums.CardStatus;
+import com.example.bankcards.exception.AccessDeniedException;
+import com.example.bankcards.exception.BusinessLogicException;
+import com.example.bankcards.exception.ResourceNotFoundException;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.util.EncryptionUtils;
@@ -32,13 +35,13 @@ public class CardService {
 
     public Card createCard(CreateCardRequest request) {
         User user = userService.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
 
         String encryptedCardNumber = encryptionUtils.encrypt(request.getCardNumber());
         String lastFour = request.getCardNumber().substring(request.getCardNumber().length() - 4);
 
         if (cardRepository.existsByNumber(encryptedCardNumber)) {
-            throw new RuntimeException("Card with this number already exists");
+            throw new BusinessLogicException("Card with this number already exists");
         }
 
         Card card = new Card();
@@ -54,10 +57,10 @@ public class CardService {
 
     public Card getCardById(Long cardId, Long userId) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new RuntimeException("Card not found with id: " + cardId));
+                .orElseThrow(() -> new ResourceNotFoundException("Card not found with id: " + cardId));
 
-        if (!card.getOwner().getId().equals(userId) && userService.isAdmin(userId)) {
-            throw new RuntimeException("Access denied");
+        if (!card.getOwner().getId().equals(userId) && !userService.isAdmin(userId)) {
+            throw new AccessDeniedException("Access denied");
         }
 
         return card;
@@ -65,14 +68,14 @@ public class CardService {
 
     public Page<Card> getUserCards(Long userId, Pageable pageable) {
         User user = userService.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return cardRepository.findByOwner(user, pageable);
     }
 
     public Page<Card> getAllCards(Pageable pageable, Long adminUserId) {
-        if (userService.isAdmin(adminUserId)) {
-            throw new RuntimeException("Access denied. Admin role required.");
+        if (!userService.isAdmin(adminUserId)) {
+            throw new AccessDeniedException("Access denied. Admin role required.");
         }
 
         return cardRepository.findAll(pageable);
@@ -80,10 +83,10 @@ public class CardService {
 
     public Card updateCard(Long cardId, UpdateCardRequest request, Long userId) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new RuntimeException("Card not found with id: " + cardId));
+                .orElseThrow(() -> new ResourceNotFoundException("Card not found with id: " + cardId));
 
-        if (!card.getOwner().getId().equals(userId) && userService.isAdmin(userId)) {
-            throw new RuntimeException("Access denied");
+        if (!card.getOwner().getId().equals(userId) && !userService.isAdmin(userId)) {
+            throw new AccessDeniedException("Access denied");
         }
 
         if (request.getCardHolder() != null) {
@@ -111,14 +114,14 @@ public class CardService {
 
     public void deleteCard(Long cardId, Long userId) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new RuntimeException("Card not found with id: " + cardId));
+                .orElseThrow(() -> new ResourceNotFoundException("Card not found with id: " + cardId));
 
-        if (!card.getOwner().getId().equals(userId) && userService.isAdmin(userId)) {
-            throw new RuntimeException("Access denied");
+        if (!card.getOwner().getId().equals(userId) && !userService.isAdmin(userId)) {
+            throw new AccessDeniedException("Access denied");
         }
 
         if (card.getBalance().compareTo(BigDecimal.ZERO) != 0) {
-            throw new RuntimeException("Cannot delete card with non-zero balance");
+            throw new BusinessLogicException("Cannot delete card with non-zero balance");
         }
 
         cardRepository.delete(card);
@@ -126,10 +129,10 @@ public class CardService {
 
     private Card updateCardStatus(Long cardId, CardStatus status, Long userId) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new RuntimeException("Card not found with id: " + cardId));
+                .orElseThrow(() -> new ResourceNotFoundException("Card not found with id: " + cardId));
 
-        if (!card.getOwner().getId().equals(userId) && userService.isAdmin(userId)) {
-            throw new RuntimeException("Access denied");
+        if (!card.getOwner().getId().equals(userId) && !userService.isAdmin(userId)) {
+            throw new AccessDeniedException("Access denied");
         }
 
         card.setStatus(status);
@@ -140,7 +143,7 @@ public class CardService {
         Card card = getCardById(cardId, userId);
 
         if (!card.getOwner().getId().equals(userId)) {
-            throw new RuntimeException("Only card owner can request block");
+            throw new AccessDeniedException("Only card owner can request block");
         }
 
         card.setStatus(CardStatus.BLOCKED);
@@ -157,7 +160,7 @@ public class CardService {
     @Transactional(readOnly = true)
     public BigDecimal getUserTotalBalance(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         List<Card> userCards = cardRepository.findByOwner(user);
 
@@ -169,7 +172,7 @@ public class CardService {
     @Transactional(readOnly = true)
     public List<Card> getUserActiveCards(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return cardRepository.findByOwnerAndStatus(user, CardStatus.ACTIVE);
     }
@@ -177,7 +180,7 @@ public class CardService {
     @Transactional(readOnly = true)
     public List<Card> getUserBlockedCards(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return cardRepository.findByOwnerAndStatus(user, CardStatus.BLOCKED);
     }

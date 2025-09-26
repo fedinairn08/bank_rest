@@ -4,6 +4,10 @@ import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.Transfer;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.enums.CardStatus;
+import com.example.bankcards.exception.AccessDeniedException;
+import com.example.bankcards.exception.BusinessLogicException;
+import com.example.bankcards.exception.ResourceNotFoundException;
+import com.example.bankcards.exception.ValidationException;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.TransferRepository;
 import com.example.bankcards.repository.UserRepository;
@@ -27,10 +31,10 @@ public class TransferService {
 
     public Transfer transferBetweenUserCards(Long fromCardId, Long toCardId, BigDecimal amount, Long userId) {
         Card fromCard = cardRepository.findByIdAndOwnerId(fromCardId, userId)
-                .orElseThrow(() -> new RuntimeException("Source card not found or access denied"));
+                .orElseThrow(() -> new AccessDeniedException("Source card not found or access denied"));
 
         Card toCard = cardRepository.findByIdAndOwnerId(toCardId, userId)
-                .orElseThrow(() -> new RuntimeException("Target card not found or access denied"));
+                .orElseThrow(() -> new AccessDeniedException("Target card not found or access denied"));
 
         return performTransfer(fromCard, toCard, amount);
     }
@@ -55,34 +59,34 @@ public class TransferService {
 
     private void validateTransfer(Card fromCard, Card toCard, BigDecimal amount) {
         if (fromCard.getStatus() != CardStatus.ACTIVE) {
-            throw new RuntimeException("Source card is not active");
+            throw new BusinessLogicException("Source card is not active");
         }
 
         if (toCard.getStatus() != CardStatus.ACTIVE) {
-            throw new RuntimeException("Target card is not active");
+            throw new BusinessLogicException("Target card is not active");
         }
 
         if (fromCard.getBalance().compareTo(amount) < 0) {
-            throw new RuntimeException("Insufficient funds on source card");
+            throw new BusinessLogicException("Insufficient funds on source card");
         }
 
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("Transfer amount must be positive");
+            throw new ValidationException("Transfer amount must be positive");
         }
 
         if (amount.compareTo(new BigDecimal("1000000")) > 0) {
-            throw new RuntimeException("Transfer amount exceeds maximum limit");
+            throw new ValidationException("Transfer amount exceeds maximum limit");
         }
 
         if (fromCard.getId().equals(toCard.getId())) {
-            throw new RuntimeException("Cannot transfer to the same card");
+            throw new ValidationException("Cannot transfer to the same card");
         }
     }
 
     @Transactional(readOnly = true)
     public Page<Transfer> getUserTransfers(Long userId, Pageable pageable) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return transferRepository.findByUser(user, pageable);
     }
@@ -90,10 +94,10 @@ public class TransferService {
     @Transactional(readOnly = true)
     public Transfer getTransferById(Long transferId, Long userId) {
         Transfer transfer = transferRepository.findById(transferId)
-                .orElseThrow(() -> new RuntimeException("Transfer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Transfer not found"));
 
         if (!isUserInvolvedInTransfer(transfer, userId) && !isAdmin(userId)) {
-            throw new RuntimeException("Access denied to view this transfer");
+            throw new AccessDeniedException("Access denied to view this transfer");
         }
 
         return transfer;
@@ -113,7 +117,7 @@ public class TransferService {
 
     private boolean isAdmin(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return user.getRoles().stream()
                 .anyMatch(role -> role.getName().name().equals("ADMIN"));

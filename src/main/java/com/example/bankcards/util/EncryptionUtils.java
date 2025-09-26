@@ -1,5 +1,6 @@
 package com.example.bankcards.util;
 
+import com.example.bankcards.exception.BusinessLogicException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -29,7 +30,7 @@ public class EncryptionUtils {
             return Base64.getEncoder().encodeToString(encryptedBytes);
 
         } catch (Exception e) {
-            throw new RuntimeException("Encryption failed", e);
+            throw new BusinessLogicException("Encryption failed", e);
         }
     }
 
@@ -44,7 +45,7 @@ public class EncryptionUtils {
             return new String(decryptedBytes, StandardCharsets.UTF_8);
 
         } catch (Exception e) {
-            throw new RuntimeException("Decryption failed", e);
+            throw new BusinessLogicException("Decryption failed", e);
         }
     }
 }

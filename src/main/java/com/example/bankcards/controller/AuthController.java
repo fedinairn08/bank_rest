@@ -4,6 +4,8 @@ import com.example.bankcards.dto.request.AuthRequest;
 import com.example.bankcards.dto.response.AuthResponse;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.enums.RoleName;
+import com.example.bankcards.exception.ResourceNotFoundException;
+import com.example.bankcards.exception.ValidationException;
 import com.example.bankcards.security.JwtTokenProvider;
 import com.example.bankcards.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +43,7 @@ public class AuthController {
         String jwt = tokenProvider.generateToken(authentication);
 
         User user = userService.findByUsername(loginRequest.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         String roles = user.getRoles().stream()
                 .map(role -> role.getName().name())
@@ -54,7 +56,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody AuthRequest signUpRequest) {
         if (userService.findByUsername(signUpRequest.getUsername()).isPresent()) {
-            return ResponseEntity.badRequest().body("Username is already taken!");
+            throw new ValidationException("Username is already taken!");
         }
 
         User user = userService.createUser(signUpRequest.getUsername(), signUpRequest.getPassword(), RoleName.USER);
