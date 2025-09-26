@@ -8,6 +8,7 @@ import com.example.bankcards.exception.ResourceNotFoundException;
 import com.example.bankcards.exception.ValidationException;
 import com.example.bankcards.security.JwtTokenProvider;
 import com.example.bankcards.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,7 +32,7 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> authenticateUser(@RequestBody AuthRequest loginRequest) {
+    public ResponseEntity<?> authenticateUser(@Valid @RequestBody AuthRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.getUsername(),
@@ -54,7 +55,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody AuthRequest signUpRequest) {
+    public ResponseEntity<?> registerUser(@Valid @RequestBody AuthRequest signUpRequest) {
         if (userService.findByUsername(signUpRequest.getUsername()).isPresent()) {
             throw new ValidationException("Username is already taken!");
         }
